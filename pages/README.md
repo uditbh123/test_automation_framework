@@ -32,3 +32,79 @@ test_automation_framework
 ├── requirements.txt → Project dependencies
 └── README.md
 ```
+
+
+---
+
+## 📂 Folder Description
+
+### tests/
+
+Contains test cases which verify application behaviour.
+
+Example:
+- Valid login functionality test
+
+---
+
+### pages/
+
+Implements the Page Object Model.
+
+This layer contains UI element locators and interaction methods.
+
+Example:
+- Login page interaction logic
+
+---
+
+### utils/
+
+Contains reusable helper functions.
+
+Example:
+- Screenshot capture on test failure
+
+---
+
+### reports/
+
+Stores:
+- HTML test execution reports
+- Failure screenshots
+
+---
+
+## 🧪 Implemented Test Scenario
+
+- Valid user login test using SauceDemo test application
+- Assertion based validation for successful login
+- Automatic screenshot capture on test failure
+- HTML report generation after test execution
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Clone Repository
+```
+git clone https://github.com/uditbh123/test_automation_framework.git
+
+cd test_automation_framework
+```
+
+---
+
+### 2. Create Virtual Environment
+
+```
+python -m venv venv
+```
+
+
+Activate it:
+
+Windows:
+```
+venv\Scripts\activate
+```
