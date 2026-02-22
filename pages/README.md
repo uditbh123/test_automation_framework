@@ -108,3 +108,57 @@ Windows:
 ```
 venv\Scripts\activate
 ```
+
+
+---
+
+### 3. Install Dependencies
+```
+pip install -r requirements.txt
+```
+
+
+---
+
+### 4. Install Playwright Browsers
+```
+python -m playwright install
+```
+
+
+---
+
+## ▶️ Running Tests
+```
+pytest
+```
+---
+
+## 📊 Generate HTML Test Report
+```
+pytest --html=reports/report.html
+```
+
+Open:
+```
+reports/report.html
+```
+
+
+to view the test execution report.
+
+---
+
+## 🎯 Future Improvements
+
+- Logging system integration
+- Cross-browser test execution
+- CI/CD pipeline integration
+- Docker support
+- API testing layer
+
+---
+
+## 👨‍💻 Author
+
+Udit
