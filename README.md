@@ -84,6 +84,17 @@ Stores:
 
 ---
 
+## 📌 25/02/2026
+
+- Modified `tests/test_login.py` to include proper logging and improved test flow
+- Updated `conftest.py` with a **PyTest fixture** for browser setup and teardown
+- Integrated **Playwright** for browser automation (Chromium)
+- Added **logging** to track test execution steps
+- Verified that the login test runs successfully and logs execution info
+- Reinforced project structure following **Page Object Model (POM)**
+- Prepared virtual environment and installed all dependencies
+- Ensured GitHub is clean by ignoring unnecessary folders (`venv/`, `logs/`, `.pytest_cache/`)
+
 ## ⚙️ Setup Instructions
 
 ### 1. Clone Repository
