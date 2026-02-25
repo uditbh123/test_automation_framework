@@ -1,5 +1,5 @@
 venv/
+logs/
 __pycache__/
+.pytest_cache/
 *.pyc
-reports/*.png
-reports/*.html
