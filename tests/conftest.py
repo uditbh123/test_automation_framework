@@ -22,6 +22,11 @@ def page():
         browser = p.chromium.launch(headless=False)
         context = browser.new_context()
         page = context.new_page()
+
+        # Navigate to SauceDemo before giving page to test
+        logging.info("Navigating to SauceDemo website")
+        page.goto("https://example.com/login")
         yield page
+
         logging.info("Closing browser")
         browser.close()
