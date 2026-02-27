@@ -1,63 +1,62 @@
-# We are importing Page class from Playwright
-# This represents a browser tab
+# Import Page class from Playwright
 from playwright.sync_api import Page
 
 
-# This class represents the LOGIN PAGE of the website
-# Think of this as a robot which knows how to interact with login screen
 class LoginPage:
+    """
+    Page Object Model for the SauceDemo Login Page.
+    Contains all locators and actions related to login functionality.
+    """
 
-    # This method runs automatically when object is created
-    # It connects our robot with the actual browser page
     def __init__(self, page: Page):
-
-        # Store the browser page inside this class
         self.page = page
 
-        # These are LOCATORS
-        # Locator means: "Where is this thing on the webpage?"
+        # Define locators using Playwright's locator() method
+        self.username_input = page.locator("#user-name")
+        self.password_input = page.locator("#password")
+        self.login_button = page.locator("#login-button")
+        self.error_message = page.locator("[data-test='error']")
+        self.inventory_container = page.locator(".inventory_list")
 
-        # Username input field location
-        self.username_input = "#user-name"
+    # -------------------------
+    # Action Methods
+    # -------------------------
 
-        # Password input field location
-        self.password_input = "#password"
+    def enter_username(self, username: str) -> None:
+        """Enter username into username field."""
+        self.username_input.fill(username)
 
-        # Login button location
-        self.login_button = "#login-button"
+    def enter_password(self, password: str) -> None:
+        """Enter password into password field."""
+        self.password_input.fill(password)
 
+    def click_login(self) -> None:
+        """Click the login button."""
+        self.login_button.click()
 
-    # This function types username in username box
-    def enter_username(self, username):
-
-        # Fill username input field
-        self.page.fill(self.username_input, username)
-
-
-    # This function types password in password box
-    def enter_password(self, password):
-
-        # Fill password input field
-        self.page.fill(self.password_input, password)
-
-
-    # This function clicks login button
-    def click_login(self):
-
-        # Click login button
-        self.page.click(self.login_button)
-
-
-    # This is a COMBINED function
-    # Instead of doing all steps separately,
-    # we create one function to perform full login action
-    def login(self, username, password):
-
-        # Enter username
+    def login(self, username: str, password: str) -> None:
+        """
+        Perform complete login action.
+        This is the business-level method used by tests.
+        """
         self.enter_username(username)
-
-        # Enter password
         self.enter_password(password)
-
-        # Click login button
         self.click_login()
+
+    # -------------------------
+    # Verification Methods
+    # -------------------------
+
+    def is_login_successful(self) -> bool:
+        """
+        Verify successful login by checking if inventory page is visible.
+        """
+        return self.inventory_container.is_visible()
+
+    def get_error_message(self) -> str:
+        """
+        Return error message text for invalid login attempts.
+        """
+        if self.error_message.is_visible():
+            return self.error_message.text_content()
+        return ""
