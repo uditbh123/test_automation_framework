@@ -27,6 +27,7 @@ def saucedemo_page():
         page.goto("https://www.saucedemo.com/")
         yield page
         logging.info("Closing browser")
+        context.close()
         browser.close()
 
 
