@@ -1,16 +1,20 @@
+import pytest
 from pages.login_page import LoginPage
 
-def test_valid_login(saucedemo_page):
-    login_page = LoginPage(saucedemo_page)
-    login_page.login("standard_user", "secret_sauce")
-    assert login_page.is_login_successful()
 
-def test_invalid_login(saucedemo_page):
+@pytest.mark.parametrize(
+    "username,password,expected_result,expected_message",
+    [
+        ("standard_user", "secret_sauce", True, None),
+        ("invalid_user", "wrong_password", False, "Username and password do not match any user"),
+        ("", "", False, "Username is required"),
+    ]
+)
+def test_login(saucedemo_page, username, password, expected_result, expected_message):
     login_page = LoginPage(saucedemo_page)
-    login_page.login("invalid_user", "wrong_password")
-    assert "Username and password do not match any user" in login_page.get_error_message()
+    login_page.login(username, password)
 
-def test_empty_credentials(saucedemo_page):
-    login_page = LoginPage(saucedemo_page)
-    login_page.login("", "")
-    assert "Username is required" in login_page.get_error_message()
+    if expected_result:
+        assert login_page.is_login_successful()
+    else:
+        assert expected_message in login_page.get_error_message()
