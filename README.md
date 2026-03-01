@@ -95,6 +95,33 @@ Stores:
 - Prepared virtual environment and installed all dependencies
 - Ensured GitHub is clean by ignoring unnecessary folders (`venv/`, `logs/`, `.pytest_cache/`)
 
+## 📌 01/03/2026 – Framework Update
+
+### Refactored `pages/login_page.py` for robust login handling:
+- Added safer navigation handling after login
+- Improved verification logic (`is_login_successful`)
+- Trimmed and cleaned error message retrieval
+
+### Updated `tests/test_login.py` to use parametrized tests with structured test data:
+- Added `tests/test_data_login.py` to manage multiple login scenarios:
+  - Valid login
+  - Invalid login
+  - Empty credentials
+  - Locked out user
+- Replaced multiple individual test functions with a single `@pytest.mark.parametrize` test
+
+### Fixed browser fixture in `conftest.py`:
+- Created `saucedemo_page` fixture for launching Chromium
+- Ensures clean browser setup and teardown for each test
+
+### Verified framework stability:
+- Ran 4 tests successfully (valid login, invalid login, empty credentials, locked out user)
+- Added proper logging for test execution steps
+
+### Reinforced Page Object Model (POM) structure and clean code practices:
+- Clear separation of test logic (`tests/`) and UI interaction logic (`pages/`)
+- Reusable fixtures and helper methods
+
 ## ⚙️ Setup Instructions
 
 ### 1. Clone Repository
