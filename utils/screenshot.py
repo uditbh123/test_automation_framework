@@ -1,8 +1,8 @@
-# This function will take screenshot when test fails
+import os
 
 def take_screenshot(page, name):
-
-    # Save screenshot inside reports folder
-    # name will be the screenshot file name
-
-    page.screenshot(path=f"reports/{name}.png")
+    screenshots_dir = "reports/screenshots"
+    os.makedirs(screenshots_dir, exist_ok=True)
+    path = f"{screenshots_dir}/{name}.png"
+    page.screenshot(path=path)
+    return path

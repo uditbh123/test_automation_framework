@@ -1,6 +1,6 @@
 import pytest
 from pages.login_page import LoginPage
-from tests.test_data_login import login_test_data
+from tests.login_test_data import login_test_data
 
 
 @pytest.mark.parametrize(
