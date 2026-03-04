@@ -1,33 +1,53 @@
 import pytest
-from playwright.sync_api import sync_playwright
 import logging
-from datetime import datetime
 import os
+from datetime import datetime
+from playwright.sync_api import sync_playwright
+from utils.screenshot import take_screenshot
 
-# logging setup...
-log_dir = "logs"
-os.makedirs(log_dir, exist_ok=True)
-logging.basicConfig(
-    filename=f"{log_dir}/test_log_{datetime.now().strftime('%y%m%d_%H%M%S')}.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# ----------------------------
+# Session-scoped logging setup
+# ----------------------------
+@pytest.fixture(scope="session", autouse=True)
+def setup_logging():
+    log_dir = "logs"
+    os.makedirs(log_dir, exist_ok=True)
+    logging.basicConfig(
+        filename=f"{log_dir}/test_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log",
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+    logging.info("Test session started")
+    yield
+    logging.info("Test session ended")
 
 # ----------------------------
 # SauceDemo fixture
 # ----------------------------
 @pytest.fixture(scope="function")
 def saucedemo_page():
+    headless = os.getenv("CI", "false").lower() == "true"  # headless in CI, headed locally
     logging.info("Launching browser for SauceDemo")
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=headless)
         context = browser.new_context()
         page = context.new_page()
-        logging.info("Navigating to SauceDemo website")
         page.goto("https://www.saucedemo.com/")
+        logging.info("Navigated to SauceDemo")
         yield page
-        logging.info("Closing browser")
         context.close()
         browser.close()
 
-
+# ----------------------------
+# Screenshot on failure hook
+# ----------------------------
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    if report.when == "call" and report.failed:
+        page = item.funcargs.get("saucedemo_page")
+        if page:
+            screenshot_name = f"FAIL_{item.name}_{datetime.now().strftime('%H%M%S')}"
+            path = take_screenshot(page, screenshot_name)
+            logging.error(f"Test failed. Screenshot saved: {path}")
