@@ -1,0 +1,80 @@
+name: Playwright Test Suite  # This is the name shown on GitHub Actions tab
+
+# ---------------------------------------------------------------
+# TRIGGERS — when should this workflow run?
+# ---------------------------------------------------------------
+on:
+  push:
+    branches: [main]         # Runs when you push code to main branch
+  pull_request:
+    branches: [main]         # Runs when someone opens a pull request to main
+
+# ---------------------------------------------------------------
+# JOBS — what should it actually do?
+# ---------------------------------------------------------------
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest   # GitHub spins up a fresh Linux machine
+
+    steps:
+
+      # Step 1: Download your repo code onto the machine
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Python on the machine
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Step 3: Install your project dependencies (from requirements.txt)
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Step 4: Install Playwright + the Chromium browser
+      - name: Install Playwright browsers
+        run: python -m playwright install --with-deps chromium
+
+      # Step 5: Create the reports folder so pytest-html doesn't fail
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      # Step 6: Run your tests
+      # CI=true tells conftest.py to run headless (no display in cloud)
+      - name: Run tests
+        env:
+          CI: true
+        run: pytest
+        continue-on-error: true   # Don't stop the workflow if tests fail
+                                  # We still want to upload the report
+
+      # Step 7: Upload the HTML report so you can download it from GitHub
+      - name: Upload test report
+        if: always()              # Run this even if tests failed
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ github.run_number }}   # Unique name per run
+          path: reports/
+          retention-days: 30      # GitHub keeps it for 30 days
+
+      # Step 8: Upload screenshots (if any tests failed)
+      - name: Upload failure screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots-${{ github.run_number }}
+          path: reports/screenshots/
+          if-no-files-found: ignore   # Don't fail if no screenshots exist
+
+      # Step 9: Send a notification in the GitHub Actions summary
+      - name: Post test summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📥 Download the HTML report from the **Artifacts** section above." >> $GITHUB_STEP_SUMMARY
