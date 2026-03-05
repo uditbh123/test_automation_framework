@@ -10,12 +10,12 @@ from tests.login_test_data import login_test_data
 def test_login(saucedemo_page, username, password, expected_result, expected_message):
     login_page = LoginPage(saucedemo_page)
 
-    # Decide which login method to use based on expected_result
+    # Single login method handles both valid and invalid flows
+    login_page.login(username, password)
+
     if expected_result:
-        # valid login, page navigates
-        login_page.login_with_navigation(username, password)
-        assert login_page.is_login_successful()
+        assert login_page.is_login_successful(), \
+            "Expected successful login but inventory page not reached"
     else:
-        # invalid login, page stays
-        login_page.login_without_navigation(username, password)
-        assert expected_message in login_page.get_error_message()
+        assert expected_message in login_page.get_error_message(), \
+            f"Expected '{expected_message}' but got '{login_page.get_error_message()}'"
