@@ -5,7 +5,7 @@
 ![Playwright](https://img.shields.io/badge/Playwright-1.58-green?style=flat&logo=playwright)
 ![PyTest](https://img.shields.io/badge/PyTest-9.0-orange?style=flat&logo=pytest)
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-black?style=flat&logo=githubactions)
-![Status](https://img.shields.io/badge/Tests-4_Passing-brightgreen?style=flat)
+![Tests](https://img.shields.io/badge/Tests-10_Passing-brightgreen?style=flat)
 
 ---
 
@@ -40,28 +40,30 @@ test_automation_framework/
 │
 ├── .github/
 │   └── workflows/
-│       └── tests.yml         → CI/CD pipeline (GitHub Actions)
+│       └── tests.yml             → CI/CD pipeline (GitHub Actions)
 │
-├── pages/                    → UI interaction logic (HOW to test)
+├── pages/                        → UI interaction logic (HOW to test)
 │   ├── __init__.py
-│   └── login_page.py         → LoginPage class with locators & methods
+│   ├── login_page.py             → LoginPage class with locators & methods
+│   └── inventory_page.py         → InventoryPage class with locators & methods
 │
-├── tests/                    → Test cases (WHAT to test)
+├── tests/                        → Test cases (WHAT to test)
 │   ├── __init__.py
-│   ├── test_login.py         → Parametrized login test scenarios
-│   └── login_test_data.py    → Test data (credentials & expected results)
+│   ├── test_login.py             → 4 parametrized login scenarios
+│   ├── login_test_data.py        → Login test data (credentials & expected results)
+│   └── test_inventory.py         → 6 inventory page scenarios
 │
-├── utils/                    → Reusable helper functions
+├── utils/                        → Reusable helper functions
 │   ├── __init__.py
-│   └── screenshot.py         → Auto screenshot capture on failure
+│   └── screenshot.py             → Auto screenshot capture on failure
 │
-├── reports/                  → Generated after test run (gitignored)
-│   ├── report.html           → Full HTML test report
-│   └── screenshots/          → Failure screenshots
+├── reports/                      → Generated after test run (gitignored)
+│   ├── report.html               → Full HTML test report
+│   └── screenshots/              → Failure screenshots
 │
-├── conftest.py               → PyTest fixtures, logging, failure hooks
-├── pytest.ini                → PyTest configuration
-├── requirements.txt          → Project dependencies
+├── conftest.py                   → PyTest fixtures, logging, failure hooks
+├── pytest.ini                    → PyTest configuration
+├── requirements.txt              → Project dependencies
 └── README.md
 ```
 
@@ -72,26 +74,33 @@ test_automation_framework/
 ```
 pytest -v
   │
-  ├── pytest.ini          → sets testpaths, auto-generates HTML report
-  ├── conftest.py         → opens fresh Chromium browser per test
+  ├── pytest.ini           → sets testpaths, auto-generates HTML report
+  ├── conftest.py          → opens fresh Chromium browser per test
+  │     ├── saucedemo_page    → browser at saucedemo.com (used by login tests)
+  │     └── logged_in_page    → browser already logged in (used by inventory tests)
   │
-  ├── test_login.py       → runs 4 parametrized scenarios
-  │     └── login_page.py → fills form, clicks login, verifies result
+  ├── test_login.py        → 4 parametrized login scenarios
+  │     └── login_page.py  → fills form, clicks login, verifies result
+  │
+  ├── test_inventory.py    → 6 inventory scenarios
+  │     └── inventory_page.py → sorts, counts products, adds to cart
   │
   └── on failure → screenshot captured automatically → saved to reports/
 ```
 
 **Key design decisions:**
-- `scope="function"` on the browser fixture — every test gets a **fresh browser** with clean state, preventing test pollution
-- Single `login()` method in `LoginPage` — one method handles both valid and invalid flows, no branching in the page object
-- `wait_for_url()` for successful login — waits for actual page navigation before asserting, preventing flaky tests
+- `scope="function"` on fixtures — every test gets a **fresh browser** with clean state, preventing test pollution
+- **Fixture composition** — `logged_in_page` builds on top of `saucedemo_page`, so login logic is never repeated in test files
+- `wait_for_url()` after login — waits for actual page navigation before asserting, preventing flaky tests
 - `pytest_runtest_makereport` hook — automatically captures screenshots on failure without any extra code in test files
 
 ---
 
 ## ✅ Implemented Test Scenarios
 
-All 4 scenarios are driven by a single parametrized test function in `test_login.py`:
+### 🔐 Login Tests — `test_login.py` (4 tests)
+
+All 4 scenarios driven by a single parametrized test function:
 
 | # | Scenario | Credentials | Expected Outcome |
 |---|---|---|---|
@@ -102,12 +111,27 @@ All 4 scenarios are driven by a single parametrized test function in `test_login
 
 ---
 
+### 🛒 Inventory Tests — `test_inventory.py` (6 tests)
+
+All tests start already logged in via the `logged_in_page` fixture:
+
+| # | Scenario | What It Verifies |
+|---|---|---|
+| 1 | Page loads correctly | URL contains `/inventory.html` and title is "Products" |
+| 2 | Six products displayed | Exactly 6 product cards are visible |
+| 3 | Products are complete | Every card has a name, price and Add to Cart button |
+| 4 | Sort by name A→Z | Product names appear in alphabetical order |
+| 5 | Sort by price low→high | Prices appear in ascending order |
+| 6 | Add to cart updates badge | Cart badge changes from 0 to 1 after adding a product |
+
+---
+
 ## 📊 Test Reports & Screenshots
 
 Every test run automatically generates:
 
-- **`reports/report.html`** — full HTML report with test names, pass/fail status, logs, and duration
-- **`reports/screenshots/`** — screenshot of the browser state at the exact moment a test fails
+- **`reports/report.html`** — full HTML report with test names, pass/fail status, logs and duration
+- **`reports/screenshots/`** — screenshot of the browser at the exact moment a test fails
 
 The HTML report is also uploaded as a **downloadable artifact** on every GitHub Actions run.
 
@@ -159,7 +183,7 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 1. Spins up a fresh Ubuntu machine
 2. Installs Python 3.11 and all dependencies
 3. Installs Chromium browser
-4. Runs all tests in headless mode (`CI=true`)
+4. Runs all 10 tests in headless mode (`CI=true`)
 5. Uploads the HTML report as a downloadable artifact
 6. Posts a test summary directly on the Actions page
 
@@ -171,9 +195,9 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 
 | Phase | Feature | Status |
 |---|---|---|
-| 1 | Login test scenarios (4 cases) | ✅ Complete |
-| 2 | Inventory page tests | 🔜 Next |
-| 3 | Cart functionality tests | 🔜 Planned |
+| 1 | Login tests — 4 scenarios | ✅ Complete |
+| 2 | Inventory page tests — 6 scenarios | ✅ Complete |
+| 3 | Cart functionality tests | 🔜 Next |
 | 4 | Checkout flow tests | 🔜 Planned |
 | 5 | End-to-end user journey test | 🔜 Planned |
 | — | Cross-browser testing (Firefox, WebKit) | 🔜 Planned |
@@ -184,13 +208,17 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 
 ## 📁 Key Files Explained
 
-**`conftest.py`** — The backbone of the framework. Contains the browser fixture (setup/teardown), session-scoped logging, and the failure screenshot hook. Nothing in this file is test-specific — it supports all tests equally.
+**`conftest.py`** — The backbone of the framework. Contains two fixtures: `saucedemo_page` (opens a fresh browser) and `logged_in_page` (builds on top of it, logs in automatically). Also handles session logging and the failure screenshot hook.
 
-**`pages/login_page.py`** — The Page Object for SauceDemo's login page. All locators and browser interactions live here. Tests never touch Playwright directly — they call methods on this class. This means if the website's HTML changes, you only update this one file.
+**`pages/login_page.py`** — Page Object for the login page. All locators and interactions live here. Tests never touch Playwright directly.
 
-**`tests/login_test_data.py`** — Pure data. No test logic, just the list of scenarios. Keeping data separate from test logic makes it trivial to add new scenarios without touching any code.
+**`pages/inventory_page.py`** — Page Object for the inventory page. Handles product counting, sorting, price extraction and cart interactions. Converts price strings like `"$9.99"` to floats for reliable numeric comparison.
 
-**`pytest.ini`** — Central configuration. Defines test discovery path, default CLI options, and live logging. Means `pytest` works correctly for everyone who clones the repo without needing to remember flags.
+**`tests/login_test_data.py`** — Pure data file. No test logic, just the list of login scenarios. Keeping data separate from logic makes adding new scenarios trivial.
+
+**`pytest.ini`** — Central configuration. Defines test discovery path, default CLI options, and live logging. Ensures `pytest` works correctly for everyone who clones the repo.
+
+**`.github/workflows/tests.yml`** — The CI pipeline. Defines every step the GitHub Actions robot follows to install, run and report tests on every push.
 
 ---
 
