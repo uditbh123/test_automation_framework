@@ -51,3 +51,18 @@ def pytest_runtest_makereport(item, call):
             screenshot_name = f"FAIL_{item.name}_{datetime.now().strftime('%H%M%S')}"
             path = take_screenshot(page, screenshot_name)
             logging.error(f"Test failed. Screenshot saved: {path}")
+
+
+@pytest.fixture(scope="function")
+def logged_in_page(saucedemo_page):
+    """
+    Builds on top of saucedemo_page.
+    logs in as standard_user and return the page
+    already on the inventory screen
+    """
+    from pages.login_page import LoginPage
+    login_page = LoginPage(saucedemo_page)
+    login_page.lpgin("standard_user", "secret_sauce")
+    saucedemo_page.wait_for_url("**/inventory.html", timeout=5000)
+    logging.info("Logged in successfully")
+    yield saucedemo_page
