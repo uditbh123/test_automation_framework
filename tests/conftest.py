@@ -52,6 +52,7 @@ def pytest_runtest_makereport(item, call):
             path = take_screenshot(page, screenshot_name)
             logging.error(f"Test failed. Screenshot saved: {path}")
 
+# Logged_in_page
 
 @pytest.fixture(scope="function")
 def logged_in_page(saucedemo_page):
@@ -66,3 +67,18 @@ def logged_in_page(saucedemo_page):
     saucedemo_page.wait_for_url("**/inventory.html", timeout=5000)
     logging.info("Logged in successfully")
     yield saucedemo_page
+
+    # Cart ready fixture 
+    @pytest.fixture(scope="function")
+    def cart_page_ready(logged_in_page):
+        """
+        Builds on top of logged_in_page.
+        Adds the first product to cart and navigates to cart page.
+        """
+        from pages.inventory_page import InventoryPage
+        inventory = InventoryPage(logged_in_page)
+        inventory.add_first_product_to_cart()
+        logged_in_page.click(".shopping_cart_link")
+        logged_in_page.wait_for_url("**/cart.html", timeout=5000)
+        logging.info("Product added to cart — on cart page")
+        yield logged_in_page
