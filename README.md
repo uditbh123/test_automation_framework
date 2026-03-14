@@ -5,7 +5,7 @@
 ![Playwright](https://img.shields.io/badge/Playwright-1.58-green?style=flat&logo=playwright)
 ![PyTest](https://img.shields.io/badge/PyTest-9.0-orange?style=flat&logo=pytest)
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-black?style=flat&logo=githubactions)
-![Tests](https://img.shields.io/badge/Tests-10_Passing-brightgreen?style=flat)
+![Tests](https://img.shields.io/badge/Tests-17_Passing-brightgreen?style=flat)
 
 ---
 
@@ -45,13 +45,15 @@ test_automation_framework/
 ├── pages/                        → UI interaction logic (HOW to test)
 │   ├── __init__.py
 │   ├── login_page.py             → LoginPage class with locators & methods
-│   └── inventory_page.py         → InventoryPage class with locators & methods
+│   ├── inventory_page.py         → InventoryPage class with locators & methods
+│   └── cart_page.py              → CartPage class with locators & methods
 │
 ├── tests/                        → Test cases (WHAT to test)
 │   ├── __init__.py
 │   ├── test_login.py             → 4 parametrized login scenarios
 │   ├── login_test_data.py        → Login test data (credentials & expected results)
-│   └── test_inventory.py         → 6 inventory page scenarios
+│   ├── test_inventory.py         → 6 inventory page scenarios
+│   └── test_cart.py              → 7 cart page scenarios
 │
 ├── utils/                        → Reusable helper functions
 │   ├── __init__.py
@@ -74,24 +76,31 @@ test_automation_framework/
 ```
 pytest -v
   │
-  ├── pytest.ini           → sets testpaths, auto-generates HTML report
-  ├── conftest.py          → opens fresh Chromium browser per test
-  │     ├── saucedemo_page    → browser at saucedemo.com (used by login tests)
-  │     └── logged_in_page    → browser already logged in (used by inventory tests)
+  ├── pytest.ini            → sets testpaths, auto-generates HTML report
+  ├── conftest.py           → manages browser lifecycle per test
+  │     ├── saucedemo_page     → browser at saucedemo.com (login tests)
+  │     ├── logged_in_page     → browser logged in (inventory tests)
+  │     └── cart_page_ready    → browser logged in + item in cart (cart tests)
   │
-  ├── test_login.py        → 4 parametrized login scenarios
-  │     └── login_page.py  → fills form, clicks login, verifies result
+  ├── test_login.py         → 4 parametrized login scenarios
+  │     └── login_page.py   → fills form, clicks login, verifies result
   │
-  ├── test_inventory.py    → 6 inventory scenarios
+  ├── test_inventory.py     → 6 inventory scenarios
   │     └── inventory_page.py → sorts, counts products, adds to cart
+  │
+  ├── test_cart.py          → 7 cart scenarios
+  │     └── cart_page.py    → reads items, removes products, navigates
   │
   └── on failure → screenshot captured automatically → saved to reports/
 ```
 
 **Key design decisions:**
 - `scope="function"` on fixtures — every test gets a **fresh browser** with clean state, preventing test pollution
-- **Fixture composition** — `logged_in_page` builds on top of `saucedemo_page`, so login logic is never repeated in test files
-- `wait_for_url()` after login — waits for actual page navigation before asserting, preventing flaky tests
+- **Fixture chaining** — each fixture builds on the previous one, so no setup code ever appears inside test files:
+  ```
+  saucedemo_page → logged_in_page → cart_page_ready
+  ```
+- `wait_for_url()` after navigation — waits for actual page load before asserting, preventing flaky tests
 - `pytest_runtest_makereport` hook — automatically captures screenshots on failure without any extra code in test files
 
 ---
@@ -111,7 +120,7 @@ All 4 scenarios driven by a single parametrized test function:
 
 ---
 
-### 🛒 Inventory Tests — `test_inventory.py` (6 tests)
+### 🛍️ Inventory Tests — `test_inventory.py` (6 tests)
 
 All tests start already logged in via the `logged_in_page` fixture:
 
@@ -123,6 +132,22 @@ All tests start already logged in via the `logged_in_page` fixture:
 | 4 | Sort by name A→Z | Product names appear in alphabetical order |
 | 5 | Sort by price low→high | Prices appear in ascending order |
 | 6 | Add to cart updates badge | Cart badge changes from 0 to 1 after adding a product |
+
+---
+
+### 🛒 Cart Tests — `test_cart.py` (7 tests)
+
+All tests start with a product already in the cart via the `cart_page_ready` fixture:
+
+| # | Scenario | What It Verifies |
+|---|---|---|
+| 1 | Cart page loads | URL contains `/cart.html` and title is "Your Cart" |
+| 2 | Added product appears | Product added from inventory is visible in cart |
+| 3 | Correct item count | Cart shows exactly 1 item after adding one product |
+| 4 | Valid product price | Price in cart is a positive number |
+| 5 | Remove empties cart | Clicking Remove clears cart and hides badge |
+| 6 | Continue Shopping | Button navigates back to `/inventory.html` |
+| 7 | Checkout navigation | Checkout button navigates to `/checkout-step-one.html` |
 
 ---
 
@@ -183,7 +208,7 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 1. Spins up a fresh Ubuntu machine
 2. Installs Python 3.11 and all dependencies
 3. Installs Chromium browser
-4. Runs all 10 tests in headless mode (`CI=true`)
+4. Runs all 17 tests in headless mode (`CI=true`)
 5. Uploads the HTML report as a downloadable artifact
 6. Posts a test summary directly on the Actions page
 
@@ -197,8 +222,8 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 |---|---|---|
 | 1 | Login tests — 4 scenarios | ✅ Complete |
 | 2 | Inventory page tests — 6 scenarios | ✅ Complete |
-| 3 | Cart functionality tests | 🔜 Next |
-| 4 | Checkout flow tests | 🔜 Planned |
+| 3 | Cart functionality tests — 7 scenarios | ✅ Complete |
+| 4 | Checkout flow tests | 🔜 Next |
 | 5 | End-to-end user journey test | 🔜 Planned |
 | — | Cross-browser testing (Firefox, WebKit) | 🔜 Planned |
 | — | Docker support | 🔜 Planned |
@@ -208,11 +233,13 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 
 ## 📁 Key Files Explained
 
-**`conftest.py`** — The backbone of the framework. Contains two fixtures: `saucedemo_page` (opens a fresh browser) and `logged_in_page` (builds on top of it, logs in automatically). Also handles session logging and the failure screenshot hook.
+**`conftest.py`** — The backbone of the framework. Contains three chained fixtures: `saucedemo_page` (opens browser), `logged_in_page` (logs in), and `cart_page_ready` (adds product to cart). Also handles session logging and the failure screenshot hook.
 
 **`pages/login_page.py`** — Page Object for the login page. All locators and interactions live here. Tests never touch Playwright directly.
 
 **`pages/inventory_page.py`** — Page Object for the inventory page. Handles product counting, sorting, price extraction and cart interactions. Converts price strings like `"$9.99"` to floats for reliable numeric comparison.
+
+**`pages/cart_page.py`** — Page Object for the cart page. Handles reading cart items, verifying prices, removing products and navigating to checkout or back to inventory.
 
 **`tests/login_test_data.py`** — Pure data file. No test logic, just the list of login scenarios. Keeping data separate from logic makes adding new scenarios trivial.
 
