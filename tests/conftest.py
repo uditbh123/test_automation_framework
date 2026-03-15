@@ -82,3 +82,18 @@ def cart_page_ready(logged_in_page):
     logged_in_page.wait_for_url("**/cart.html", timeout=5000)
     logging.info("Product added to cart — on cart page")
     yield logged_in_page
+
+# Checkout ready fixture 
+@pytest.fixture(scope="function")
+def checkout_ready(cart_page_ready):
+    """
+    Builds on top of cart_page_ready.
+    clicks checkout button and lands on checkout step 1.
+    """
+    from pages.cart_page import CartPage
+    cart = CartPage(cart_page_ready)
+    cart.click_checkout()
+    cart_page_ready.wait_for_url("**/checkout-step-one.html", timeout=5000)
+    logging.info("On checkout step 1 — ready for checkout tests")
+    yield cart_page_ready
+    
