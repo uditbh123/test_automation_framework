@@ -5,7 +5,7 @@
 ![Playwright](https://img.shields.io/badge/Playwright-1.58-green?style=flat&logo=playwright)
 ![PyTest](https://img.shields.io/badge/PyTest-9.0-orange?style=flat&logo=pytest)
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-black?style=flat&logo=githubactions)
-![Tests](https://img.shields.io/badge/Tests-17_Passing-brightgreen?style=flat)
+![Tests](https://img.shields.io/badge/Tests-25_Passing-brightgreen?style=flat)
 
 ---
 
@@ -40,32 +40,34 @@ test_automation_framework/
 │
 ├── .github/
 │   └── workflows/
-│       └── tests.yml             → CI/CD pipeline (GitHub Actions)
+│       └── tests.yml              → CI/CD pipeline (GitHub Actions)
 │
-├── pages/                        → UI interaction logic (HOW to test)
+├── pages/                         → UI interaction logic (HOW to test)
 │   ├── __init__.py
-│   ├── login_page.py             → LoginPage class with locators & methods
-│   ├── inventory_page.py         → InventoryPage class with locators & methods
-│   └── cart_page.py              → CartPage class with locators & methods
+│   ├── login_page.py              → LoginPage class with locators & methods
+│   ├── inventory_page.py          → InventoryPage class with locators & methods
+│   ├── cart_page.py               → CartPage class with locators & methods
+│   └── checkout_page.py           → CheckoutPage class covering all 3 checkout steps
 │
-├── tests/                        → Test cases (WHAT to test)
+├── tests/                         → Test cases (WHAT to test)
 │   ├── __init__.py
-│   ├── test_login.py             → 4 parametrized login scenarios
-│   ├── login_test_data.py        → Login test data (credentials & expected results)
-│   ├── test_inventory.py         → 6 inventory page scenarios
-│   └── test_cart.py              → 7 cart page scenarios
+│   ├── test_login.py              → 4 parametrized login scenarios
+│   ├── login_test_data.py         → Login test data (credentials & expected results)
+│   ├── test_inventory.py          → 6 inventory page scenarios
+│   ├── test_cart.py               → 7 cart page scenarios
+│   └── test_checkout.py           → 8 checkout flow scenarios
 │
-├── utils/                        → Reusable helper functions
+├── utils/                         → Reusable helper functions
 │   ├── __init__.py
-│   └── screenshot.py             → Auto screenshot capture on failure
+│   └── screenshot.py              → Auto screenshot capture on failure
 │
-├── reports/                      → Generated after test run (gitignored)
-│   ├── report.html               → Full HTML test report
-│   └── screenshots/              → Failure screenshots
+├── reports/                       → Generated after test run (gitignored)
+│   ├── report.html                → Full HTML test report
+│   └── screenshots/               → Failure screenshots
 │
-├── conftest.py                   → PyTest fixtures, logging, failure hooks
-├── pytest.ini                    → PyTest configuration
-├── requirements.txt              → Project dependencies
+├── conftest.py                    → PyTest fixtures, logging, failure hooks
+├── pytest.ini                     → PyTest configuration
+├── requirements.txt               → Project dependencies
 └── README.md
 ```
 
@@ -76,31 +78,36 @@ test_automation_framework/
 ```
 pytest -v
   │
-  ├── pytest.ini            → sets testpaths, auto-generates HTML report
-  ├── conftest.py           → manages browser lifecycle per test
-  │     ├── saucedemo_page     → browser at saucedemo.com (login tests)
-  │     ├── logged_in_page     → browser logged in (inventory tests)
-  │     └── cart_page_ready    → browser logged in + item in cart (cart tests)
+  ├── pytest.ini             → sets testpaths, auto-generates HTML report
+  ├── conftest.py            → manages browser lifecycle per test
+  │     ├── saucedemo_page      → browser at saucedemo.com (login tests)
+  │     ├── logged_in_page      → browser logged in (inventory tests)
+  │     ├── cart_page_ready     → logged in + item in cart (cart tests)
+  │     └── checkout_ready      → logged in + item in cart + on checkout (checkout tests)
   │
-  ├── test_login.py         → 4 parametrized login scenarios
-  │     └── login_page.py   → fills form, clicks login, verifies result
+  ├── test_login.py          → 4 parametrized login scenarios
+  │     └── login_page.py    → fills form, clicks login, verifies result
   │
-  ├── test_inventory.py     → 6 inventory scenarios
+  ├── test_inventory.py      → 6 inventory scenarios
   │     └── inventory_page.py → sorts, counts products, adds to cart
   │
-  ├── test_cart.py          → 7 cart scenarios
-  │     └── cart_page.py    → reads items, removes products, navigates
+  ├── test_cart.py           → 7 cart scenarios
+  │     └── cart_page.py     → reads items, removes products, navigates
+  │
+  ├── test_checkout.py       → 8 checkout scenarios
+  │     └── checkout_page.py → fills form, verifies summary, completes order
   │
   └── on failure → screenshot captured automatically → saved to reports/
 ```
 
 **Key design decisions:**
 - `scope="function"` on fixtures — every test gets a **fresh browser** with clean state, preventing test pollution
-- **Fixture chaining** — each fixture builds on the previous one, so no setup code ever appears inside test files:
+- **Fixture chaining** — each fixture builds on the previous one, no setup code ever appears inside test files:
   ```
-  saucedemo_page → logged_in_page → cart_page_ready
+  saucedemo_page → logged_in_page → cart_page_ready → checkout_ready
   ```
-- `wait_for_url()` after navigation — waits for actual page load before asserting, preventing flaky tests
+- `wait_for_url()` after every navigation — waits for actual page load before asserting, preventing flaky tests
+- **Single CheckoutPage class** covers all 3 checkout steps — tests flow naturally step 1 → step 2 → step 3 without switching objects
 - `pytest_runtest_makereport` hook — automatically captures screenshots on failure without any extra code in test files
 
 ---
@@ -148,6 +155,23 @@ All tests start with a product already in the cart via the `cart_page_ready` fix
 | 5 | Remove empties cart | Clicking Remove clears cart and hides badge |
 | 6 | Continue Shopping | Button navigates back to `/inventory.html` |
 | 7 | Checkout navigation | Checkout button navigates to `/checkout-step-one.html` |
+
+---
+
+### 💳 Checkout Tests — `test_checkout.py` (8 tests)
+
+All tests start on checkout step 1 via the `checkout_ready` fixture:
+
+| # | Scenario | What It Verifies |
+|---|---|---|
+| 1 | Checkout page loads | URL contains `/checkout-step-one.html` and title is correct |
+| 2 | Empty fields show error | Clicking Continue with no input shows "First Name is required" |
+| 3 | Missing last name error | Partial input shows specific "Last Name is required" error |
+| 4 | Valid info → step 2 | Correct form data navigates to `/checkout-step-two.html` |
+| 5 | Order summary correct | Product added to cart appears in order summary |
+| 6 | Price total is correct | Item total + tax = total price shown on summary page |
+| 7 | Finish completes order | Clicking Finish lands on confirmation with success message |
+| 8 | Cancel returns to cart | Clicking Cancel navigates back to `/cart.html` |
 
 ---
 
@@ -208,7 +232,7 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 1. Spins up a fresh Ubuntu machine
 2. Installs Python 3.11 and all dependencies
 3. Installs Chromium browser
-4. Runs all 17 tests in headless mode (`CI=true`)
+4. Runs all 25 tests in headless mode (`CI=true`)
 5. Uploads the HTML report as a downloadable artifact
 6. Posts a test summary directly on the Actions page
 
@@ -223,8 +247,8 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 | 1 | Login tests — 4 scenarios | ✅ Complete |
 | 2 | Inventory page tests — 6 scenarios | ✅ Complete |
 | 3 | Cart functionality tests — 7 scenarios | ✅ Complete |
-| 4 | Checkout flow tests | 🔜 Next |
-| 5 | End-to-end user journey test | 🔜 Planned |
+| 4 | Checkout flow tests — 8 scenarios | ✅ Complete |
+| 5 | End-to-end user journey test | 🔜 Next |
 | — | Cross-browser testing (Firefox, WebKit) | 🔜 Planned |
 | — | Docker support | 🔜 Planned |
 | — | API testing layer | 🔜 Planned |
@@ -233,13 +257,15 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 
 ## 📁 Key Files Explained
 
-**`conftest.py`** — The backbone of the framework. Contains three chained fixtures: `saucedemo_page` (opens browser), `logged_in_page` (logs in), and `cart_page_ready` (adds product to cart). Also handles session logging and the failure screenshot hook.
+**`conftest.py`** — The backbone of the framework. Contains four chained fixtures covering every stage of the user journey. Also handles session logging and the failure screenshot hook.
 
 **`pages/login_page.py`** — Page Object for the login page. All locators and interactions live here. Tests never touch Playwright directly.
 
 **`pages/inventory_page.py`** — Page Object for the inventory page. Handles product counting, sorting, price extraction and cart interactions. Converts price strings like `"$9.99"` to floats for reliable numeric comparison.
 
 **`pages/cart_page.py`** — Page Object for the cart page. Handles reading cart items, verifying prices, removing products and navigating to checkout or back to inventory.
+
+**`pages/checkout_page.py`** — Page Object covering all 3 checkout steps in a single class. Step 1 handles form filling and error validation. Step 2 handles order summary and price verification. Step 3 handles the confirmation message.
 
 **`tests/login_test_data.py`** — Pure data file. No test logic, just the list of login scenarios. Keeping data separate from logic makes adding new scenarios trivial.
 
