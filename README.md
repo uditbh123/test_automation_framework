@@ -5,7 +5,7 @@
 ![Playwright](https://img.shields.io/badge/Playwright-1.58-green?style=flat&logo=playwright)
 ![PyTest](https://img.shields.io/badge/PyTest-9.0-orange?style=flat&logo=pytest)
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-black?style=flat&logo=githubactions)
-![Tests](https://img.shields.io/badge/Tests-25_Passing-brightgreen?style=flat)
+![Tests](https://img.shields.io/badge/Tests-26_Passing-brightgreen?style=flat)
 
 ---
 
@@ -55,7 +55,8 @@ test_automation_framework/
 │   ├── login_test_data.py         → Login test data (credentials & expected results)
 │   ├── test_inventory.py          → 6 inventory page scenarios
 │   ├── test_cart.py               → 7 cart page scenarios
-│   └── test_checkout.py           → 8 checkout flow scenarios
+│   ├── test_checkout.py           → 8 checkout flow scenarios
+│   └── test_e2e.py                → 1 complete end-to-end user journey
 │
 ├── utils/                         → Reusable helper functions
 │   ├── __init__.py
@@ -80,7 +81,7 @@ pytest -v
   │
   ├── pytest.ini             → sets testpaths, auto-generates HTML report
   ├── conftest.py            → manages browser lifecycle per test
-  │     ├── saucedemo_page      → browser at saucedemo.com (login tests)
+  │     ├── saucedemo_page      → browser at saucedemo.com (login + e2e tests)
   │     ├── logged_in_page      → browser logged in (inventory tests)
   │     ├── cart_page_ready     → logged in + item in cart (cart tests)
   │     └── checkout_ready      → logged in + item in cart + on checkout (checkout tests)
@@ -97,6 +98,9 @@ pytest -v
   ├── test_checkout.py       → 8 checkout scenarios
   │     └── checkout_page.py → fills form, verifies summary, completes order
   │
+  ├── test_e2e.py            → 1 complete user journey (all 4 page objects)
+  │     └── Login → Inventory → Cart → Checkout → Confirmation
+  │
   └── on failure → screenshot captured automatically → saved to reports/
 ```
 
@@ -107,7 +111,8 @@ pytest -v
   saucedemo_page → logged_in_page → cart_page_ready → checkout_ready
   ```
 - `wait_for_url()` after every navigation — waits for actual page load before asserting, preventing flaky tests
-- **Single CheckoutPage class** covers all 3 checkout steps — tests flow naturally step 1 → step 2 → step 3 without switching objects
+- **Single CheckoutPage class** covers all 3 checkout steps — tests flow naturally step 1 → step 2 → step 3
+- **E2E data flow** — product name and price captured in inventory are verified again in cart, checkout summary and order total
 - `pytest_runtest_makereport` hook — automatically captures screenshots on failure without any extra code in test files
 
 ---
@@ -175,6 +180,22 @@ All tests start on checkout step 1 via the `checkout_ready` fixture:
 
 ---
 
+### 🎯 End-to-End Test — `test_e2e.py` (1 test)
+
+Uses only the bare `saucedemo_page` fixture — no pre-setup, no isolation. Simulates a complete real user journey in a single test, verifying data flows correctly through every page:
+
+| Step | Action | Assertion |
+|---|---|---|
+| 1 | Login as standard_user | Successfully lands on inventory page |
+| 2 | Sort products by price low→high | Cheapest product name and price captured |
+| 3 | Add cheapest product to cart | Cart badge updates to 1 |
+| 4 | Navigate to cart | Correct product name and price appear in cart |
+| 5 | Fill checkout information | Navigates to order summary page |
+| 6 | Review order summary | Product matches, item total + tax = total |
+| 7 | Click Finish | Confirmation page shows "Thank you for your order!" |
+
+---
+
 ## 📊 Test Reports & Screenshots
 
 Every test run automatically generates:
@@ -215,9 +236,14 @@ pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
-### 5. Run tests
+### 5. Run all tests
 ```bash
 pytest -v
+```
+
+### 6. Run only E2E test with live step output
+```bash
+pytest tests/test_e2e.py -v -s
 ```
 
 The HTML report is automatically generated at `reports/report.html`.
@@ -232,7 +258,7 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 1. Spins up a fresh Ubuntu machine
 2. Installs Python 3.11 and all dependencies
 3. Installs Chromium browser
-4. Runs all 25 tests in headless mode (`CI=true`)
+4. Runs all 26 tests in headless mode (`CI=true`)
 5. Uploads the HTML report as a downloadable artifact
 6. Posts a test summary directly on the Actions page
 
@@ -248,7 +274,7 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 | 2 | Inventory page tests — 6 scenarios | ✅ Complete |
 | 3 | Cart functionality tests — 7 scenarios | ✅ Complete |
 | 4 | Checkout flow tests — 8 scenarios | ✅ Complete |
-| 5 | End-to-end user journey test | 🔜 Next |
+| 5 | End-to-end user journey test | ✅ Complete |
 | — | Cross-browser testing (Firefox, WebKit) | 🔜 Planned |
 | — | Docker support | 🔜 Planned |
 | — | API testing layer | 🔜 Planned |
@@ -266,6 +292,8 @@ This project uses **GitHub Actions** to run the full test suite automatically on
 **`pages/cart_page.py`** — Page Object for the cart page. Handles reading cart items, verifying prices, removing products and navigating to checkout or back to inventory.
 
 **`pages/checkout_page.py`** — Page Object covering all 3 checkout steps in a single class. Step 1 handles form filling and error validation. Step 2 handles order summary and price verification. Step 3 handles the confirmation message.
+
+**`tests/test_e2e.py`** — The most complete test in the project. Uses all 4 page objects together to simulate a real user journey from login to order confirmation. Data captured in one step is verified in subsequent steps, ensuring the entire system works end to end.
 
 **`tests/login_test_data.py`** — Pure data file. No test logic, just the list of login scenarios. Keeping data separate from logic makes adding new scenarios trivial.
 
